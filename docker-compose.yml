@@ -1,38 +1,67 @@
-version: '3'
 services:
-  cockroachdb:
-    image: cockroachdb/cockroach:latest-v23.1
-    command: start-single-node --insecure --store=attrs=ssd,path=/var/lib/cockroach/
-    restart: "no"
+  postgres:
+    image: postgres:16-alpine
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-wildleague}
     volumes:
-      - data:/var/lib/cockroach
-    expose:
-      - "8080"
-      - "26257"
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d
     ports:
-      - "26257:26257"
-      - "8080:8080"
+      - "5432:5432"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health?ready=1"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-wildleague}",
+        ]
       interval: 3s
       timeout: 3s
       retries: 5
+    restart: "no"
+  api:
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - .gitignore
+            - .vscode
+            - .DS_Store
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
   nakama:
     image: registry.heroiclabs.com/heroiclabs/nakama:3.21.1
+    platform: linux/amd64
     entrypoint:
       - "/bin/sh"
       - "-ecx"
       - >
-          /nakama/nakama migrate up --database.address root@cockroachdb:26257 &&
-          exec /nakama/nakama --name nakama1 --database.address root@cockroachdb:26257 --logger.level DEBUG --session.token_expiry_sec 7200 --metrics.prometheus_port 9100          
-    restart: "no"
+        /nakama/nakama migrate up --database.address $$POSTGRES_ADDRESS &&
+        exec /nakama/nakama --name nakama1 --database.address $$POSTGRES_ADDRESS --logger.level DEBUG --session.token_expiry_sec 7200 --metrics.prometheus_port 9100
+    env_file: .env
+    environment:
+      POSTGRES_ADDRESS: ${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/nakama
     links:
-      - "cockroachdb:db"
+      - "postgres:db"
     depends_on:
-      cockroachdb:
+      postgres:
         condition: service_healthy
-      prometheus:
-        condition: service_started
+      # prometheus:
+      #   condition: service_started
     volumes:
       - ./:/nakama/data
     expose:
@@ -49,29 +78,73 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-  prometheus:
-    image: prom/prometheus
-    entrypoint: /bin/sh -c
-    command: |
-      'sh -s <<EOF
-        cat > ./prometheus.yml <<EON
-      global:
-        scrape_interval:     15s
-        evaluation_interval: 15s
-
-      scrape_configs:
-        - job_name: prometheus
-          static_configs:
-          - targets: ['localhost:9090']
-
-        - job_name: nakama
-          metrics_path: /
-          static_configs:
-          - targets: ['nakama:9100']
-      EON
-      prometheus --config.file=./prometheus.yml
-      EOF'      
+    restart: "no"
+  seaweedfs-master:
+    image: chrislusf/seaweedfs
+    command: master -ip=seaweedfs-master -ip.bind=0.0.0.0 -metricsPort=9324
     ports:
-      - '9090:9090'
+      - "9333:9333"
+      - "19333:19333"
+      - "9324:9324"
+    restart: "no"
+  seaweedfs-volume:
+    image: chrislusf/seaweedfs
+    command: volume -ip=seaweedfs-volume -master="seaweedfs-master:9333" -ip.bind=0.0.0.0 -port=8090 -metricsPort=9325
+    ports:
+      - "8090:8090"
+      - "18090:18090"
+      - "9325:9325"
+    volumes:
+      - seaweedfs_data:/data
+    depends_on:
+      - seaweedfs-master
+    restart: "no"
+  seaweedfs-filer:
+    image: chrislusf/seaweedfs
+    command: filer -ip=seaweedfs-filer -master="seaweedfs-master:9333" -ip.bind=0.0.0.0 -metricsPort=9326
+    ports:
+      - "8888:8888"
+      - "18888:18888"
+      - "9326:9326"
+    depends_on:
+      - seaweedfs-master
+      - seaweedfs-volume
+    restart: "no"
+  seaweedfs-s3:
+    image: chrislusf/seaweedfs
+    command: s3 -filer="seaweedfs-filer:8888" -ip.bind=0.0.0.0 -metricsPort=9327
+    ports:
+      - "8333:8333"
+      - "9327:9327"
+    depends_on:
+      - seaweedfs-master
+      - seaweedfs-volume
+      - seaweedfs-filer
+    restart: "no"
+  # prometheus:
+  #   image: prom/prometheus
+  #   entrypoint: /bin/sh -c
+  #   command: |
+  #     'sh -s <<EOF
+  #       cat > ./prometheus.yml <<EON
+  #     global:
+  #       scrape_interval:     15s
+  #       evaluation_interval: 15s
+
+  #     scrape_configs:
+  #       - job_name: prometheus
+  #         static_configs:
+  #         - targets: ['localhost:9090']
+
+  #       - job_name: nakama
+  #         metrics_path: /
+  #         static_configs:
+  #         - targets: ['nakama:9100']
+  #     EON
+  #     prometheus --config.file=./prometheus.yml
+  #     EOF'
+  #   ports:
+  #     - "9090:9090"
 volumes:
-  data:
+  seaweedfs_data:
+  postgres_data:

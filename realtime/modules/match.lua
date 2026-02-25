@@ -118,6 +118,19 @@ function M.match_loop(context, dispatcher, tick, state, messages)
 				}), nil, message.sender)
 			end
 		end
+
+		if opcode == MatchEvents.card_dead then
+			local card = M.cards[user_id][data.card_id]
+
+			if card then
+				M.cards[user_id][data.card_id] = nil
+
+				dispatcher.broadcast_message(opcode, nk.json_encode({
+					card_id = data.card_id,
+					opcode = opcode
+				}), nil, message.sender)
+			end
+		end
 	end
 
   return state

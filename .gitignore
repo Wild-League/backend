@@ -1,2 +1,10 @@
 .cookie
 .vscode
+
+venv/
+__pycache__
+prod_settings.py
+.env
+waitlist.txt
+.DS_Store
+test_activity.py
