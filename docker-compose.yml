@@ -51,24 +51,19 @@ services:
       - "-ecx"
       - >
         /nakama/nakama migrate up --database.address $$POSTGRES_ADDRESS &&
-        exec /nakama/nakama --name nakama1 --database.address $$POSTGRES_ADDRESS --logger.level DEBUG --session.token_expiry_sec 7200 --metrics.prometheus_port 9100
+        exec /nakama/nakama --name nakama1 --database.address $$POSTGRES_ADDRESS --logger.level DEBUG --session.token_expiry_sec 7200
     env_file: .env
     environment:
       POSTGRES_ADDRESS: ${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/nakama
-    links:
-      - "postgres:db"
     depends_on:
       postgres:
         condition: service_healthy
-      # prometheus:
-      #   condition: service_started
     volumes:
       - ./:/nakama/data
     expose:
       - "7349"
       - "7350"
       - "7351"
-      - "9100"
     ports:
       - "7349:7349"
       - "7350:7350"
@@ -81,19 +76,17 @@ services:
     restart: "no"
   seaweedfs-master:
     image: chrislusf/seaweedfs
-    command: master -ip=seaweedfs-master -ip.bind=0.0.0.0 -metricsPort=9324
+    command: master -ip=seaweedfs-master -ip.bind=0.0.0.0
     ports:
       - "9333:9333"
       - "19333:19333"
-      - "9324:9324"
     restart: "no"
   seaweedfs-volume:
     image: chrislusf/seaweedfs
-    command: volume -ip=seaweedfs-volume -master="seaweedfs-master:9333" -ip.bind=0.0.0.0 -port=8090 -metricsPort=9325
+    command: volume -ip=seaweedfs-volume -master="seaweedfs-master:9333" -ip.bind=0.0.0.0 -port=8090
     ports:
       - "8090:8090"
       - "18090:18090"
-      - "9325:9325"
     volumes:
       - seaweedfs_data:/data
     depends_on:
@@ -101,50 +94,24 @@ services:
     restart: "no"
   seaweedfs-filer:
     image: chrislusf/seaweedfs
-    command: filer -ip=seaweedfs-filer -master="seaweedfs-master:9333" -ip.bind=0.0.0.0 -metricsPort=9326
+    command: filer -ip=seaweedfs-filer -master="seaweedfs-master:9333" -ip.bind=0.0.0.0
     ports:
       - "8888:8888"
       - "18888:18888"
-      - "9326:9326"
     depends_on:
       - seaweedfs-master
       - seaweedfs-volume
     restart: "no"
   seaweedfs-s3:
     image: chrislusf/seaweedfs
-    command: s3 -filer="seaweedfs-filer:8888" -ip.bind=0.0.0.0 -metricsPort=9327
+    command: s3 -filer="seaweedfs-filer:8888" -ip.bind=0.0.0.0
     ports:
       - "8333:8333"
-      - "9327:9327"
     depends_on:
       - seaweedfs-master
       - seaweedfs-volume
       - seaweedfs-filer
     restart: "no"
-  # prometheus:
-  #   image: prom/prometheus
-  #   entrypoint: /bin/sh -c
-  #   command: |
-  #     'sh -s <<EOF
-  #       cat > ./prometheus.yml <<EON
-  #     global:
-  #       scrape_interval:     15s
-  #       evaluation_interval: 15s
-
-  #     scrape_configs:
-  #       - job_name: prometheus
-  #         static_configs:
-  #         - targets: ['localhost:9090']
-
-  #       - job_name: nakama
-  #         metrics_path: /
-  #         static_configs:
-  #         - targets: ['nakama:9100']
-  #     EON
-  #     prometheus --config.file=./prometheus.yml
-  #     EOF'
-  #   ports:
-  #     - "9090:9090"
 volumes:
   seaweedfs_data:
   postgres_data:

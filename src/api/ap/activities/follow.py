@@ -7,7 +7,6 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from ..types import ActivityType
 
-# ActivityPub Follow
 class Follow():
 	def __init__(self, actor, target_actor, id):
 		self.type = ActivityType.Follow

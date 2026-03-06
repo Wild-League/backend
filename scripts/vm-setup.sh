@@ -74,8 +74,3 @@ docker compose exec -T api python manage.py migrate --noinput
 info ""
 info "Setup complete. Services running:"
 docker compose ps
-
-info ""
-info "Next steps:"
-info "  - Add the VM's deploy public key to GitHub: $DEPLOY_PATH/scripts/print-deploy-key.sh"
-info "  - Configure GitHub Actions secrets (see .github/workflows/deploy.yml header)"

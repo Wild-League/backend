@@ -1,11 +1,3 @@
-# Deploy to internal VM on every push to main.
-#
-# Required GitHub repository secrets (Settings → Secrets and variables → Actions):
-#   DEPLOY_HOST      — IP or hostname of your VM (e.g. 192.168.1.50)
-#   DEPLOY_USER      — SSH user on the VM (e.g. ubuntu)
-#   DEPLOY_SSH_KEY   — Private SSH key whose public key is in ~/.ssh/authorized_keys on the VM
-#   DEPLOY_PATH      — Absolute path to the repo on the VM (e.g. /opt/wildleague/backend)
-
 name: Deploy
 
 on:
