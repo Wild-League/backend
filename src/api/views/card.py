@@ -22,7 +22,9 @@ class CardModelViewSet(viewsets.ModelViewSet):
 		if name:
 			name_filter = Q(name__icontains=name)
 
-		queryset = Card.objects.all().filter(name_filter).order_by('id')[:limit]
+		queryset = Card.objects.all().filter(name_filter).order_by('id')
+		if limit is not None:
+			queryset = queryset[:limit]
 		serializer = CardSerializer(queryset, many=True)
 
 		return Response(serializer.data)

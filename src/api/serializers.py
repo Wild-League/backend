@@ -84,6 +84,7 @@ class DeckSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Deck
 		fields = ['id', 'name', 'created_at', 'updated_at']
+		read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class DeckCardsSerializer(serializers.ModelSerializer):
@@ -92,6 +93,28 @@ class DeckCardsSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Deck
 		fields = ['id', 'name', 'cards']
+
+
+class DeckSetCardsSerializer(serializers.Serializer):
+	card_ids = serializers.ListField(
+		child=serializers.IntegerField(min_value=1),
+		allow_empty=True,
+		required=True,
+	)
+
+	def validate_card_ids(self, value):
+		seen = set()
+		unique = []
+		for cid in value:
+			if cid in seen:
+				continue
+			seen.add(cid)
+			unique.append(cid)
+		return unique
+
+
+class DeckSelectSerializer(serializers.Serializer):
+	id = serializers.IntegerField(min_value=1)
 
 
 class UsersSerializer(serializers.ModelSerializer):
