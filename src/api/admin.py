@@ -1,5 +1,5 @@
 from django.contrib import admin
-from api.models import Users
+from .models import Users
 
 @admin.register(Users)
 class UserAdmin(admin.ModelAdmin):
