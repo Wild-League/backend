@@ -22,6 +22,9 @@ SEAWEED = {
 	'S3_ENDPOINT': getenv('SEAWEED_S3_ENDPOINT', 'localhost:8333'),
 	'ACCESS_KEY': getenv('SEAWEED_ACCESS_KEY', ''),
 	'SECRET_KEY': getenv('SEAWEED_SECRET_KEY', ''),
+	'CARD_BUCKET': getenv('SEAWEED_CARD_BUCKET', 'cards'),
+	# Public base for object URLs (e.g. http://localhost:8333 when API runs on host). If unset, http://<S3_ENDPOINT> is used.
+	'PUBLIC_BASE_URL': getenv('SEAWEED_PUBLIC_BASE_URL', ''),
 }
 
 # Database
