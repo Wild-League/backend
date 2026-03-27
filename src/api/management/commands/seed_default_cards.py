@@ -34,19 +34,13 @@ UPSTREAM = 'https://raw.githubusercontent.com/Wild-League/base-cards-assets/main
 # Files to mirror per slug (must match Card.img_* usage in _default_cards).
 MIRROR_FILES: list[tuple[str, str]] = [
 	('caveman', 'card.png'),
-	('caveman', 'attack-left.png'),
-	('caveman', 'attack-right.png'),
-	('caveman', 'death-left.png'),
-	('caveman', 'death-right.png'),
-	('caveman', 'walk-left.png'),
-	('caveman', 'walk-right.png'),
+	('caveman', 'attack.png'),
+	('caveman', 'death.png'),
+	('caveman', 'walk.png'),
 	('dino', 'card.png'),
-	('dino', 'attack-left.png'),
-	('dino', 'attack-right.png'),
-	('dino', 'death-left.png'),
-	('dino', 'death-right.png'),
-	('dino', 'walk-left.png'),
-	('dino', 'walk-right.png'),
+	('dino', 'attack.png'),
+	('dino', 'death.png'),
+	('dino', 'walk.png'),
 	('thunder', 'card.png'),
 	('thunder', 'attack.png')
 ]
