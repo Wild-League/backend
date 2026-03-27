@@ -60,6 +60,8 @@ Nakama’s published image is `linux/amd64`; on Apple Silicon, Docker will emula
 
    After the API and SeaweedFS are healthy, seed the built-in card catalog and mirror assets into SeaweedFS (see `src/api/management/commands/seed_default_cards.py`):
 
+	First, you'll probably need to create the bucket manually `cards`.
+
    ```bash
    docker compose exec api python manage.py seed_default_cards
    ```
