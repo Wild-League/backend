@@ -82,6 +82,8 @@ services:
     ports:
       - "9333:9333"
       - "19333:19333"
+    volumes:
+      - seaweedfs_master_data:/data
     restart: "no"
   seaweedfs-volume:
     image: chrislusf/seaweedfs
@@ -100,6 +102,8 @@ services:
     ports:
       - "8888:8888"
       - "18888:18888"
+    volumes:
+      - seaweedfs_filer_data:/data
     depends_on:
       - seaweedfs-master
       - seaweedfs-volume
@@ -116,4 +120,6 @@ services:
     restart: "no"
 volumes:
   seaweedfs_data:
+  seaweedfs_master_data:
+  seaweedfs_filer_data:
   postgres_data:
