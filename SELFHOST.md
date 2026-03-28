@@ -66,6 +66,13 @@ Nakama’s published image is `linux/amd64`; on Apple Silicon, Docker will emula
    docker compose exec api python manage.py seed_default_cards
    ```
 
+		Allow public access to the bucket
+		```bash
+		docker compose exec seaweedfs-master weed shell -master=seaweedfs-master:9333
+
+		s3.configure -user=anonymous -actions=Read:cards,List:cards -apply
+		```
+
    Run once on a fresh database unless you use `--force` to refresh.
 
 ## Services and ports
