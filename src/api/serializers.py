@@ -77,7 +77,7 @@ class AuthSerializer(serializers.ModelSerializer):
 class CardSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Card
-		fields = ['id', 'name', 'type', 'cooldown', 'damage', 'attack_range', 'speed', 'life', 'img_card', 'img_preview', 'img_attack', 'img_death', 'img_walk', 'frame_width', 'frame_height']
+		fields = ['id', 'name', 'type', 'cooldown', 'attack_speed', 'damage', 'attack_range', 'speed', 'life', 'img_card', 'img_preview', 'img_attack', 'img_death', 'img_walk', 'frame_width', 'frame_height']
 
 
 class DeckSerializer(serializers.ModelSerializer):

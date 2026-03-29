@@ -2,6 +2,7 @@ insert into "public"."card"
 	(
 		"attack_range",
 		"cooldown",
+		"attack_speed",
 		"created_at",
 		"damage",
 		"frame_height",
@@ -19,9 +20,9 @@ insert into "public"."card"
 		"updated_at"
 	)
 values
-	('40.00', '6.00', '2024-03-02', '100.00', 60, 60, 1, 'https://wild-minio.fly.dev/cards/caveman/attack.png', 'https://wild-minio.fly.dev/cards/caveman/card.png', 'https://wild-minio.fly.dev/cards/caveman/death.png', 'https://wild-minio.fly.dev/cards/caveman/preview.png', 'https://wild-minio.fly.dev/cards/caveman/walk.png', 100, 'Caveman', '1.00', 'char', NULL),
-	('60.00', '10.00', '2024-03-02', '200.00', 90, 90, 2, 'https://wild-minio.fly.dev/cards/dino/attack.png', 'https://wild-minio.fly.dev/cards/dino/card.png', 'https://wild-minio.fly.dev/cards/dino/death.png', 'https://wild-minio.fly.dev/cards/dino/preview.png', 'https://wild-minio.fly.dev/cards/dino/walk.png', 300, 'Dino', '0.80', 'char', NULL),
-	('50.00', '5.00', '2024-03-02', '70.00', 64, 64, 3, 'https://wild-minio.fly.dev/cards/thunder/attack.png', 'https://wild-minio.fly.dev/cards/thunder/card.png', NULL, NULL, NULL, NULL, 'Thunder', '1.20', 'spell', NULL)
+	('40.00', '6.00', '1.00', '2024-03-02', '100.00', 60, 60, 1, 'https://wild-minio.fly.dev/cards/caveman/attack.png', 'https://wild-minio.fly.dev/cards/caveman/card.png', 'https://wild-minio.fly.dev/cards/caveman/death.png', 'https://wild-minio.fly.dev/cards/caveman/preview.png', 'https://wild-minio.fly.dev/cards/caveman/walk.png', 100, 'Caveman', '1.00', 'char', NULL),
+	('60.00', '10.00', '0.83', '2024-03-02', '200.00', 90, 90, 2, 'https://wild-minio.fly.dev/cards/dino/attack.png', 'https://wild-minio.fly.dev/cards/dino/card.png', 'https://wild-minio.fly.dev/cards/dino/death.png', 'https://wild-minio.fly.dev/cards/dino/preview.png', 'https://wild-minio.fly.dev/cards/dino/walk.png', 300, 'Dino', '0.80', 'char', NULL),
+	('50.00', '5.00', NULL, '2024-03-02', '70.00', 64, 64, 3, 'https://wild-minio.fly.dev/cards/thunder/attack.png', 'https://wild-minio.fly.dev/cards/thunder/card.png', NULL, NULL, NULL, NULL, 'Thunder', '1.20', 'spell', NULL)
 ;
 
 

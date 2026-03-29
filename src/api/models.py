@@ -44,6 +44,7 @@ class Card(models.Model):
 	speed = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 	attack_range = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 	cooldown = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+	attack_speed = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 	damage = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 	frame_width = models.IntegerField(blank=True, null=True)
 	frame_height = models.IntegerField(blank=True, null=True)

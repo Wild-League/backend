@@ -55,6 +55,7 @@ class CardSeedFields(TypedDict):
 	speed: Decimal | None
 	attack_range: Decimal | None
 	cooldown: Decimal | None
+	attack_speed: Decimal | None
 	damage: Decimal | None
 	frame_width: int | None
 	frame_height: int | None
@@ -219,6 +220,7 @@ def _default_cards(base_url: str) -> list[tuple[int, CardSeedFields]]:
 				'speed': Decimal('1.00'),
 				'attack_range': Decimal('40.00'),
 				'cooldown': Decimal('6.00'),
+				'attack_speed': Decimal('1.00'),  # 1 attack / sec
 				'damage': Decimal('100.00'),
 				'frame_width': 60,
 				'frame_height': 60,
@@ -240,6 +242,7 @@ def _default_cards(base_url: str) -> list[tuple[int, CardSeedFields]]:
 				'speed': Decimal('0.80'),
 				'attack_range': Decimal('60.00'),
 				'cooldown': Decimal('10.00'),
+				'attack_speed': Decimal('0.83'),  # ~1.2s between attacks (slower than Caveman)
 				'damage': Decimal('200.00'),
 				'frame_width': 90,
 				'frame_height': 90,
@@ -261,6 +264,7 @@ def _default_cards(base_url: str) -> list[tuple[int, CardSeedFields]]:
 				'speed': Decimal('1.20'),
 				'attack_range': Decimal('50.00'),
 				'cooldown': Decimal('5.00'),
+				'attack_speed': None,
 				'damage': Decimal('70.00'),
 				'frame_width': 64,
 				'frame_height': 64,
