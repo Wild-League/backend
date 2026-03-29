@@ -29,14 +29,22 @@ local function cooldown_ticks_from_seconds(seconds)
 	return math.max(1, math.floor(s * TICKRATE + 0.5))
 end
 
--- Load combat stats for a card name from PostgreSQL (wildleague.card via FDW in nakama DB).
+local function attack_cooldown_ticks_from_attack_speed(aps)
+	local r = tonumber(aps)
+	if not r or r <= 0 then
+		return nil
+	end
+	local seconds_per_attack = 1.0 / r
+	return math.max(1, math.floor(seconds_per_attack * TICKRATE + 0.5))
+end
+
 local function load_card_def(card_name)
 	if card_def_cache[card_name] then
 		return card_def_cache[card_name]
 	end
 
 	local query = [[
-		SELECT life, speed, damage, attack_range, cooldown, frame_width, frame_height
+		SELECT life, speed, damage, attack_range, cooldown, attack_speed, frame_width, frame_height
 		FROM card
 		WHERE name = $1
 		LIMIT 1
@@ -57,12 +65,17 @@ local function load_card_def(card_name)
 		return nil
 	end
 
+	local attack_ticks = attack_cooldown_ticks_from_attack_speed(row.attack_speed)
+	if not attack_ticks then
+		attack_ticks = attack_cooldown_ticks_from_attack_speed(1.0)
+	end
+
 	local def = {
 		life = life,
 		speed = tonumber(row.speed) or 1.0,
 		damage = tonumber(row.damage) or 0,
 		attack_range = tonumber(row.attack_range) or 0,
-		attack_cooldown_ticks = cooldown_ticks_from_seconds(row.cooldown),
+		attack_cooldown_ticks = attack_ticks,
 		cooldown_ticks = cooldown_ticks_from_seconds(row.cooldown),
 		frame_w = tonumber(row.frame_width) or 60,
 		frame_h = tonumber(row.frame_height) or 60
@@ -436,12 +449,15 @@ local function simulate(dispatcher, state, tick)
 		local enemy_card, enemy_distance = get_nearest_enemy_card(state, card)
 		if enemy_card then
 			if enemy_distance <= card.attack_range then
+				local just_entered_attack = false
 				if card.action ~= "attack" then
 					card.action = "attack"
+					card.next_attack_tick = tick + card.attack_cooldown_ticks
+					just_entered_attack = true
 					changed = true
 				end
 
-				if tick >= card.next_attack_tick then
+				if not just_entered_attack and tick >= card.next_attack_tick then
 					card.next_attack_tick = tick + card.attack_cooldown_ticks
 					enemy_card.current_life = enemy_card.current_life - card.damage
 					enemy_card.entity_version = enemy_card.entity_version + 1
@@ -468,12 +484,15 @@ local function simulate(dispatcher, state, tick)
 			local enemy_tower, tower_distance = get_nearest_enemy_tower(state, card)
 			if enemy_tower then
 				if tower_distance <= card.attack_range then
+					local just_entered_attack = false
 					if card.action ~= "attack" then
 						card.action = "attack"
+						card.next_attack_tick = tick + card.attack_cooldown_ticks
+						just_entered_attack = true
 						changed = true
 					end
 
-					if tick >= card.next_attack_tick then
+					if not just_entered_attack and tick >= card.next_attack_tick then
 						card.next_attack_tick = tick + card.attack_cooldown_ticks
 						enemy_tower.current_life = enemy_tower.current_life - card.damage
 						if enemy_tower.current_life <= 0 and not enemy_tower.destroyed then
