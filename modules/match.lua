@@ -100,13 +100,42 @@ local function dist(x1, y1, x2, y2)
 	return math.sqrt(dx * dx + dy * dy), dx, dy
 end
 
-local function card_payload(card)
+-- World X is authoritative (left base west, right base east). Clients always use
+-- "viewer" X (local player's side drawn on the right). Left-side players see mirrored X.
+local function viewer_to_world_x(x, side)
+	if side == "left" then
+		return WORLD.max_x - x
+	end
+	return x
+end
+
+local function world_to_viewer_x(x, side)
+	if side == "left" then
+		return WORLD.max_x - x
+	end
+	return x
+end
+
+local function presences_by_side(state)
+	local left, right = {}, {}
+	for _, presence in pairs(state.presences) do
+		local player = state.players[presence.user_id]
+		if player and player.side == "left" then
+			left[#left + 1] = presence
+		elseif player and player.side == "right" then
+			right[#right + 1] = presence
+		end
+	end
+	return left, right
+end
+
+local function card_payload(card, viewer_side)
 	return {
 		entity_id = card.entity_id,
 		entity_version = card.entity_version,
 		owner_id = card.owner_id,
 		card_name = card.card_name,
-		x = card.x,
+		x = world_to_viewer_x(card.x, viewer_side),
 		y = card.y,
 		action = card.action,
 		current_life = card.current_life,
@@ -114,11 +143,11 @@ local function card_payload(card)
 	}
 end
 
-local function tower_payload(tower)
+local function tower_payload(tower, viewer_side)
 	return {
 		tower_id = tower.tower_id,
 		owner_id = tower.owner_id,
-		x = tower.x,
+		x = world_to_viewer_x(tower.x, viewer_side),
 		y = tower.y,
 		current_life = tower.current_life,
 		max_life = tower.max_life,
@@ -166,22 +195,32 @@ local function setup_players_and_towers(state, setupstate)
 end
 
 local function broadcast_snapshot(dispatcher, state)
-	local cards = {}
-	for _, entity_id in ipairs(sorted_keys(state.cards)) do
-		cards[#cards + 1] = card_payload(state.cards[entity_id])
+	local left_presences, right_presences = presences_by_side(state)
+
+	local function send_snapshot(viewer_side, presences)
+		if #presences == 0 then
+			return
+		end
+		local cards = {}
+		for _, entity_id in ipairs(sorted_keys(state.cards)) do
+			cards[#cards + 1] = card_payload(state.cards[entity_id], viewer_side)
+		end
+
+		local towers = {}
+		for _, tower_id in ipairs(sorted_keys(state.towers)) do
+			towers[#towers + 1] = tower_payload(state.towers[tower_id], viewer_side)
+		end
+
+		dispatcher.broadcast_message(MatchEvents.state_snapshot, nk.json_encode({
+			match_tick = state.tick,
+			cards = cards,
+			towers = towers,
+			winner_id = state.winner_id
+		}), presences)
 	end
 
-	local towers = {}
-	for _, tower_id in ipairs(sorted_keys(state.towers)) do
-		towers[#towers + 1] = tower_payload(state.towers[tower_id])
-	end
-
-	dispatcher.broadcast_message(MatchEvents.state_snapshot, nk.json_encode({
-		match_tick = state.tick,
-		cards = cards,
-		towers = towers,
-		winner_id = state.winner_id
-	}))
+	send_snapshot("left", left_presences)
+	send_snapshot("right", right_presences)
 end
 
 local function reject_intent(dispatcher, message, reason, data)
@@ -256,8 +295,10 @@ local function process_spawn_intent(dispatcher, state, tick, message, data)
 		return
 	end
 
-	local x = clamp(tonumber(data.x) or WORLD.min_x, WORLD.min_x, WORLD.max_x)
-	local y = clamp(tonumber(data.y) or WORLD.min_y, WORLD.min_y, WORLD.max_y)
+	local vx = tonumber(data.x) or WORLD.min_x
+	local vy = tonumber(data.y) or WORLD.min_y
+	local x = clamp(viewer_to_world_x(vx, owner.side), WORLD.min_x, WORLD.max_x)
+	local y = clamp(vy, WORLD.min_y, WORLD.max_y)
 	local direction = owner.side == "left" and 1 or -1
 
 	local card = {
@@ -281,11 +322,19 @@ local function process_spawn_intent(dispatcher, state, tick, message, data)
 	state.cards[card_id] = card
 	owner.cooldowns[card_name] = tick + def.cooldown_ticks
 
-	dispatcher.broadcast_message(MatchEvents.entity_spawned, nk.json_encode({
-		match_tick = tick,
-		client_intent_id = data.client_intent_id,
-		entity = card_payload(card)
-	}))
+	local left_presences, right_presences = presences_by_side(state)
+	local function send_spawn(viewer_side, presences)
+		if #presences == 0 then
+			return
+		end
+		dispatcher.broadcast_message(MatchEvents.entity_spawned, nk.json_encode({
+			match_tick = tick,
+			client_intent_id = data.client_intent_id,
+			entity = card_payload(card, viewer_side)
+		}), presences)
+	end
+	send_spawn("left", left_presences)
+	send_spawn("right", right_presences)
 end
 
 local function process_messages(dispatcher, state, tick, messages)
@@ -306,19 +355,27 @@ local function process_messages(dispatcher, state, tick, messages)
 	end
 end
 
-local function emit_entity_updated(dispatcher, tick, card)
-	dispatcher.broadcast_message(MatchEvents.entity_updated, nk.json_encode({
-		match_tick = tick,
-		entity_id = card.entity_id,
-		entity_version = card.entity_version,
-		owner_id = card.owner_id,
-		card_name = card.card_name,
-		x = card.x,
-		y = card.y,
-		action = card.action,
-		current_life = card.current_life,
-		max_life = card.max_life
-	}))
+local function emit_entity_updated(dispatcher, state, tick, card)
+	local left_presences, right_presences = presences_by_side(state)
+	local function send_update(viewer_side, presences)
+		if #presences == 0 then
+			return
+		end
+		dispatcher.broadcast_message(MatchEvents.entity_updated, nk.json_encode({
+			match_tick = tick,
+			entity_id = card.entity_id,
+			entity_version = card.entity_version,
+			owner_id = card.owner_id,
+			card_name = card.card_name,
+			x = world_to_viewer_x(card.x, viewer_side),
+			y = card.y,
+			action = card.action,
+			current_life = card.current_life,
+			max_life = card.max_life
+		}), presences)
+	end
+	send_update("left", left_presences)
+	send_update("right", right_presences)
 end
 
 local function get_nearest_enemy_card(state, card)
@@ -388,7 +445,7 @@ local function simulate(dispatcher, state, tick)
 					card.next_attack_tick = tick + card.attack_cooldown_ticks
 					enemy_card.current_life = enemy_card.current_life - card.damage
 					enemy_card.entity_version = enemy_card.entity_version + 1
-					emit_entity_updated(dispatcher, tick, enemy_card)
+					emit_entity_updated(dispatcher, state, tick, enemy_card)
 
 					dispatcher.broadcast_message(MatchEvents.damage_event, nk.json_encode({
 						match_tick = tick,
@@ -447,7 +504,7 @@ local function simulate(dispatcher, state, tick)
 			removed[#removed + 1] = card.entity_id
 		elseif changed then
 			card.entity_version = card.entity_version + 1
-			emit_entity_updated(dispatcher, tick, card)
+			emit_entity_updated(dispatcher, state, tick, card)
 		end
 	end
 
